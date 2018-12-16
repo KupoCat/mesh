@@ -90,6 +90,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Users\Tomer\Desktop\libigl\external\libigl-imgui;C:\Users\Tomer\Desktop\libigl\external\imgui\examples;C:\Users\Tomer\Desktop\libigl\external;C:\Users\Tomer\Anaconda3\Library\include;C:\dev\CGAL-4.13\include;C:\dev\CGAL-4.13\auxiliary\gmp\include;C:\Users\Tomer\Desktop\libigl\external\eigen;C:\Users\Tomer\Desktop\libigl\external\glad\include;C:\Users\Tomer\Desktop\libigl\external\glfw\include;C:\Users\Tomer\Desktop\libigl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

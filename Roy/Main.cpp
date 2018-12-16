@@ -238,15 +238,13 @@ int main(int argc, char *argv[])
 	igl::opengl::glfw::imgui::ImGuiMenu menu;
 	viewer.plugins.push_back(&menu);
 	std::string base_path = std::string("C:\\Users\\Tomer\\Desktop\\libigl\\tutorial\\data");
-	//igl::writeOBJ(base_path + "\\hand.obj", outVertecies, outFaces);
-	
+	igl::writeOBJ(base_path + "\\hand.obj", outVertecies, outFaces);
+
 	viewer.load_mesh_from_file(base_path + "\\cube.obj");
-	viewer.load_mesh_from_file(base_path + "\\hand.obj");
+	cout << viewer.load_mesh_from_file(base_path + "\\hand.obj") << endl;
+
 	int left_view, right_view;
 	int cell_id = viewer.data_list[0].id, model_id = viewer.data_list[1].id;
-
-
-	//cout << viewer.data() << endl;
 
 	viewer.callback_init = [&](igl::opengl::glfw::Viewer &)
 	{
@@ -288,14 +286,14 @@ int main(int argc, char *argv[])
 		if (ImGui::Button("Reload wire mesh"))
 		{
 			igl::copyleft::cgal::wire_mesh(MatVertices, MatEdges, f, i, b, outVertecies, outFaces, J); // wire mesh
-			viewer.data().clear();
-			viewer.data().set_mesh(outVertecies, outFaces); // display
+			viewer.data(model_id).clear();
+			viewer.data(model_id).set_mesh(outVertecies, outFaces); // display
 		}
 	};
 	*/
+	
 	cout << "done" << endl;
 	viewer.launch();
-	cin >> c;
 }
 /*
 int main(int argc, char * argv[])
