@@ -140,6 +140,7 @@ void make_avg_ver(int a, int b, vector<vector<double>>& vertices)
 
 void make_cell(vector<vector<double>>& vertices, vector<vector<int>>& cubes)
 {
+	// gets cubes and vertices and generates smaller cubes inside the bigger cubes //
 	vector<vector<int>> tmp = cubes;
 	for (auto cube : cubes)
 	{
@@ -193,6 +194,32 @@ void connect_cells(vector<vector<int>>& edges)
 	edges = vector<vector<int>>(s.begin(), s.end());
 }
 
+vector<vector<double>> convert_cube(vector<int> source, vector<vector<double>> from_ver, vector<int> target, vector<vector<double>> to_ver)
+{
+	//TODO: implement this
+}
+
+void import_cell(vector<vector<double>>& M_vertices, vector<vector<int>>& M_cubes, vector<vector<double>>& C_vertices, vector<vector<int>>& C_cubes)
+{
+	vector<vector<int>> tmp_cubes;
+	vector<vector<double>> tmp_vers;
+	int jump = M_vertices.size();
+	for (auto M_cube : M_cubes)
+	{
+		for (auto C_cube : C_cubes) //TODO: consider changing implementation. go over all vers and change them, them leave cubes as is (add const to all)
+		{
+			vector<vector<double>> new_vers = convert_cube(C_cube, C_vertices, M_cube, M_vertices);
+			vector<int> new_cube = range(jump + 8, jump);
+			jump += 8;
+			tmp_cubes.push_back(new_cube);
+			tmp_vers.insert(tmp_vers.end(), new_vers.begin(), new_vers.end());
+		}
+	}
+
+	M_vertices.insert(M_vertices.end(), tmp_vers.begin(), tmp_vers.end());
+	M_cubes.insert(M_cubes.end(), tmp_cubes.begin(), tmp_cubes.end());
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -241,19 +268,23 @@ int main(int argc, char *argv[])
 	igl::writeOBJ(base_path + "\\hand.obj", outVertecies, outFaces);
 
 	viewer.load_mesh_from_file(base_path + "\\cube.obj");
-	cout << viewer.load_mesh_from_file(base_path + "\\hand.obj") << endl;
+	viewer.load_mesh_from_file(base_path + "\\hand.obj");
 
 	int left_view, right_view;
 	int cell_id = viewer.data_list[0].id, model_id = viewer.data_list[1].id;
+
+	cout << "split viewer" << endl;
+
 
 	viewer.callback_init = [&](igl::opengl::glfw::Viewer &)
 	{
 		viewer.core().viewport = Eigen::Vector4f(0, 0, 640, 800);
 		left_view = viewer.core_list[0].id;
 		right_view = viewer.append_core(Eigen::Vector4f(640, 0, 640, 800));
-		return true;
+		cout << viewer.core_list.size() << endl;
+		return false;
 	};
-	cout << "split viewer" << endl;
+
 	viewer.callback_key_down = [&](igl::opengl::glfw::Viewer &, unsigned int key, int mod)
 	{
 		if (key == GLFW_KEY_SPACE)
@@ -276,7 +307,7 @@ int main(int argc, char *argv[])
 	int i = 3;
 	bool b = false;
 	cout << "loading menu" << endl;
-	/*
+	
 	menu.callback_draw_viewer_menu = [&]()
 	{
 		ImGui::InputFloat("Thickness", &f);
@@ -290,7 +321,7 @@ int main(int argc, char *argv[])
 			viewer.data(model_id).set_mesh(outVertecies, outFaces); // display
 		}
 	};
-	*/
+	
 	
 	cout << "done" << endl;
 	viewer.launch();
