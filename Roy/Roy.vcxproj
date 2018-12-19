@@ -115,7 +115,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Tomer\Desktop\libigl\external\libigl-imgui;C:\Users\Tomer\Desktop\libigl\external\imgui\examples;C:\Users\Tomer\Desktop\libigl\external;C:\Users\Tomer\Anaconda3\Library\include;C:\dev\CGAL-4.13\include;C:\dev\CGAL-4.13\auxiliary\gmp\include;C:\Users\Tomer\Desktop\libigl\external\eigen;C:\Users\Tomer\Desktop\libigl\external\glad\include;C:\Users\Tomer\Desktop\libigl\external\glfw\include;C:\Users\Tomer\Desktop\libigl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Tomer\Desktop\cpd\include;C:\Users\Tomer\Desktop\libigl\external\libigl-imgui;C:\Users\Tomer\Desktop\libigl\external\imgui\examples;C:\Users\Tomer\Desktop\libigl\external;C:\Users\Tomer\Anaconda3\Library\include;C:\dev\CGAL-4.13\include;C:\dev\CGAL-4.13\auxiliary\gmp\include;C:\Users\Tomer\Desktop\libigl\external\eigen;C:\Users\Tomer\Desktop\libigl\external\glad\include;C:\Users\Tomer\Desktop\libigl\external\glfw\include;C:\Users\Tomer\Desktop\libigl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;CGAL_USE_CORE;CGAL_HEADER_ONLY</PreprocessorDefinitions>
     </ClCompile>
     <Link>

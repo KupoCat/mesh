@@ -196,7 +196,38 @@ void connect_cells(vector<vector<int>>& edges)
 
 vector<vector<double>> convert_cube(vector<int> source, vector<vector<double>> from_ver, vector<int> target, vector<vector<double>> to_ver)
 {
-	//TODO: implement this
+	/*
+	Eigen::Matrix<double, Eigen::Dynamic, 3> Mat_target;
+	Eigen::Matrix<double, Eigen::Dynamic, 3> Mat_source;
+	vector<vector<double>> tmp;
+	vector<double> temp;
+	for (auto point : target) 
+	{
+		tmp.push_back(to_ver[point]);
+	}
+	igl::list_to_matrix(tmp, Mat_target);
+
+	tmp.clear();
+	for (int i : range(1))
+		for (int j : range(1))
+			for (int k : range(1))
+			{
+				temp.push_back(double(i));
+				temp.push_back(double(j));
+				temp.push_back(double(k));
+				tmp.push_back(temp);
+				temp.clear();
+			}
+
+	igl::list_to_matrix(tmp, Mat_source);
+
+	cpd::Matrix fixed = Mat_target;
+	cpd::Matrix moving = Mat_source;
+	cpd::NonrigidResult result = cpd::nonrigid(fixed, moving);
+	igl::matrix_to_list(moving, tmp);
+	return tmp;
+	*/ 
+	// TODO: Implement bilinear interpolation (give each vertex a value that is the cords in the target)
 }
 
 void import_cell(vector<vector<double>>& M_vertices, vector<vector<int>>& M_cubes, vector<vector<double>>& C_vertices, vector<vector<int>>& C_cubes)
@@ -222,32 +253,33 @@ void import_cell(vector<vector<double>>& M_vertices, vector<vector<int>>& M_cube
 
 int main(int argc, char *argv[])
 {
+	std::string base_path = std::string("C:\\Users\\Tomer\\Desktop\\libigl\\tutorial\\data");
 
-	vector<vector<double>> inVertices;
-	vector<vector<int>> Cubes;
+	vector<vector<double>> Model_ver;
+	vector<vector<int>> Model_cubes;
+	vector<vector<double>> Cell_ver;
+	vector<vector<int>> Cell_cubes;
+	
 	vector<vector<int>> inEdges;
 
-	read_cubic_mesh("C:\\Users\\tomer\\Desktop\\python\\Mesh to Obj\\hand.mesh", inVertices, Cubes);
+	read_cubic_mesh("C:\\Users\\tomer\\Desktop\\python\\Mesh to Obj\\model.mesh", Model_ver, Model_cubes);
+	read_cubic_mesh("C:\\Users\\tomer\\Desktop\\python\\Mesh to Obj\\cell.mesh", Cell_ver, Cell_cubes);
 
-	//Cubes = vector<vector<int>>(Cubes.begin(), Cubes.begin() + 10);
+	//make_cell(inVertices, Cubes);
 
-	make_cell(inVertices, Cubes);
+	import_cell(Model_ver, Model_cubes, Cell_ver, Cell_cubes);
 
-	cout << "finished making cells" << endl;
-
-	get_edges_from_cube_mesh(Cubes, inEdges);
+	get_edges_from_cube_mesh(Model_cubes, inEdges);
 
 	cout << "got edges" << endl;
 
-	connect_cells(inEdges);
-
-	cout << "connected cells" << endl;
+	//connect_cells(inEdges);
 
 	// in
 	Eigen::Matrix<double, Eigen::Dynamic, 3> MatVertices;
 	Eigen::Matrix<int, Eigen::Dynamic, 2> MatEdges;
 
-	igl::list_to_matrix(inVertices, MatVertices);
+	igl::list_to_matrix(Model_ver, MatVertices);
 	igl::list_to_matrix(inEdges, MatEdges);
 
 	// out
@@ -259,16 +291,24 @@ int main(int argc, char *argv[])
 	Eigen::Matrix<double, Eigen::Dynamic, 3> cellVer;
 
 	igl::copyleft::cgal::wire_mesh(MatVertices, MatEdges, 0.01, 3, false, outVertecies, outFaces, J);
-	cout << "Done" << endl;
+	igl::writeOBJ(base_path + "\\model.obj", outVertecies, outFaces);
+
+	inEdges.clear();
+
+	get_edges_from_cube_mesh(Cell_cubes, inEdges);
+
+	igl::list_to_matrix(Cell_ver, MatVertices);
+	igl::list_to_matrix(inEdges, MatEdges);
+
+	igl::copyleft::cgal::wire_mesh(MatVertices, MatEdges, 0.01, 3, false, outVertecies, outFaces, J);
+	igl::writeOBJ(base_path + "\\cell.obj", outVertecies, outFaces);
 	// --------------------MENU-------------------- //
 	igl::opengl::glfw::Viewer viewer;
 	igl::opengl::glfw::imgui::ImGuiMenu menu;
 	viewer.plugins.push_back(&menu);
-	std::string base_path = std::string("C:\\Users\\Tomer\\Desktop\\libigl\\tutorial\\data");
-	igl::writeOBJ(base_path + "\\hand.obj", outVertecies, outFaces);
 
-	viewer.load_mesh_from_file(base_path + "\\cube.obj");
-	viewer.load_mesh_from_file(base_path + "\\hand.obj");
+	viewer.load_mesh_from_file(base_path + "\\cell.obj");
+	viewer.load_mesh_from_file(base_path + "\\model.obj");
 
 	int left_view, right_view;
 	int cell_id = viewer.data_list[0].id, model_id = viewer.data_list[1].id;
