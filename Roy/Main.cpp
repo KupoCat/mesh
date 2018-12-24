@@ -6,6 +6,7 @@
 #include <igl/copyleft/cgal/wire_mesh.h>
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
 #include <imgui/imgui.h>
+#include <windows.h>
 
 using namespace std;
 
@@ -194,40 +195,46 @@ void connect_cells(vector<vector<int>>& edges)
 	edges = vector<vector<int>>(s.begin(), s.end());
 }
 
-vector<vector<double>> convert_cube(vector<int> source, vector<vector<double>> from_ver, vector<int> target, vector<vector<double>> to_ver)
+double interpolate(double a, double b, double frac) // a, b - two points on a line. frac - fraction at which to interpolate
 {
-	/*
-	Eigen::Matrix<double, Eigen::Dynamic, 3> Mat_target;
-	Eigen::Matrix<double, Eigen::Dynamic, 3> Mat_source;
-	vector<vector<double>> tmp;
-	vector<double> temp;
-	for (auto point : target) 
+	return (a * frac) + (b * (1 - frac));
+}
+
+vector<vector<double>> convert_cube(vector<int>& source, vector<vector<double>>& from_ver, vector<int> target, vector<vector<double>> to_ver) // returns a vector of vertices of the interpolated cube
+{
+	vector<vector<double>> small;
+	vector<vector<double>> big;
+	vector<vector<double>> out;
+	for (auto ind : source)
 	{
-		tmp.push_back(to_ver[point]);
+		small.push_back(from_ver[ind]);
 	}
-	igl::list_to_matrix(tmp, Mat_target);
-
-	tmp.clear();
-	for (int i : range(1))
-		for (int j : range(1))
-			for (int k : range(1))
-			{
-				temp.push_back(double(i));
-				temp.push_back(double(j));
-				temp.push_back(double(k));
-				tmp.push_back(temp);
-				temp.clear();
-			}
-
-	igl::list_to_matrix(tmp, Mat_source);
-
-	cpd::Matrix fixed = Mat_target;
-	cpd::Matrix moving = Mat_source;
-	cpd::NonrigidResult result = cpd::nonrigid(fixed, moving);
-	igl::matrix_to_list(moving, tmp);
-	return tmp;
-	*/ 
-	// TODO: Implement bilinear interpolation (give each vertex a value that is the cords in the target)
+	for (auto ind : target)
+	{
+		big.push_back(to_ver[ind]);
+	}
+	
+	int i = 0;
+	for (auto ver : small)
+	{
+		vector<double> new_ver;
+		for (int dim : range(3)) // interpolate for each dim
+		{
+			//first interpolation
+			double a = interpolate(big[0][dim], big[1][dim], ver[0]);
+			double b = interpolate(big[3][dim], big[2][dim], ver[0]);
+			double c = interpolate(big[4][dim], big[5][dim], ver[0]);
+			double d = interpolate(big[7][dim], big[6][dim], ver[0]);
+			//second interpolation
+			double a_ = interpolate(a, b, ver[1]);
+			double b_ = interpolate(c, d, ver[1]);
+			//third interpolation
+			double x = interpolate(a_, b_, ver[2]);
+			new_ver.push_back(x);
+		}
+		out.push_back(new_ver);
+	}
+	return out;
 }
 
 void import_cell(vector<vector<double>>& M_vertices, vector<vector<int>>& M_cubes, vector<vector<double>>& C_vertices, vector<vector<int>>& C_cubes)
@@ -237,7 +244,7 @@ void import_cell(vector<vector<double>>& M_vertices, vector<vector<int>>& M_cube
 	int jump = M_vertices.size();
 	for (auto M_cube : M_cubes)
 	{
-		for (auto C_cube : C_cubes) //TODO: consider changing implementation. go over all vers and change them, them leave cubes as is (add const to all)
+		for (auto C_cube : C_cubes)
 		{
 			vector<vector<double>> new_vers = convert_cube(C_cube, C_vertices, M_cube, M_vertices);
 			vector<int> new_cube = range(jump + 8, jump);
@@ -251,9 +258,16 @@ void import_cell(vector<vector<double>>& M_vertices, vector<vector<int>>& M_cube
 	M_cubes.insert(M_cubes.end(), tmp_cubes.begin(), tmp_cubes.end());
 }
 
+string ExePath() {
+	char buffer[MAX_PATH];
+	GetModuleFileName(NULL, buffer, MAX_PATH);
+	string::size_type pos = string(buffer).find_last_of("\\/");
+	return string(buffer).substr(0, pos);
+}
+
 int main(int argc, char *argv[])
 {
-	std::string base_path = std::string("C:\\Users\\Tomer\\Desktop\\libigl\\tutorial\\data");
+	std::string base_path = ExePath() + std::string("\\..\\..\\Data\\");
 
 	vector<vector<double>> Model_ver;
 	vector<vector<int>> Model_cubes;
@@ -262,19 +276,19 @@ int main(int argc, char *argv[])
 	
 	vector<vector<int>> inEdges;
 
-	read_cubic_mesh("C:\\Users\\tomer\\Desktop\\python\\Mesh to Obj\\model.mesh", Model_ver, Model_cubes);
-	read_cubic_mesh("C:\\Users\\tomer\\Desktop\\python\\Mesh to Obj\\cell.mesh", Cell_ver, Cell_cubes);
+	read_cubic_mesh(base_path + "bunny_1.mesh", Model_ver, Model_cubes);
+	read_cubic_mesh(base_path + "cell.mesh", Cell_ver, Cell_cubes);
 
 	//make_cell(inVertices, Cubes);
+
+	//import_cell(Cell_ver, Cell_cubes, Cell_ver, Cell_cubes);
 
 	import_cell(Model_ver, Model_cubes, Cell_ver, Cell_cubes);
 
 	get_edges_from_cube_mesh(Model_cubes, inEdges);
 
 	cout << "got edges" << endl;
-
-	//connect_cells(inEdges);
-
+	// -------------------MODEL------------------- //
 	// in
 	Eigen::Matrix<double, Eigen::Dynamic, 3> MatVertices;
 	Eigen::Matrix<int, Eigen::Dynamic, 2> MatEdges;
@@ -287,21 +301,27 @@ int main(int argc, char *argv[])
 	Eigen::Matrix<double, Eigen::Dynamic, 3> outVertecies;
 	Eigen::Matrix<int, Eigen::Dynamic, 1> J;
 
-	Eigen::Matrix<int, Eigen::Dynamic, 3> cellFace;
-	Eigen::Matrix<double, Eigen::Dynamic, 3> cellVer;
-
 	igl::copyleft::cgal::wire_mesh(MatVertices, MatEdges, 0.01, 3, false, outVertecies, outFaces, J);
 	igl::writeOBJ(base_path + "\\model.obj", outVertecies, outFaces);
+	
+	// -------------------CELL------------------- //
 
 	inEdges.clear();
 
 	get_edges_from_cube_mesh(Cell_cubes, inEdges);
 
-	igl::list_to_matrix(Cell_ver, MatVertices);
-	igl::list_to_matrix(inEdges, MatEdges);
+	Eigen::Matrix<double, Eigen::Dynamic, 3> CellVertices;
+	Eigen::Matrix<int, Eigen::Dynamic, 2> CellEdges;
 
-	igl::copyleft::cgal::wire_mesh(MatVertices, MatEdges, 0.01, 3, false, outVertecies, outFaces, J);
-	igl::writeOBJ(base_path + "\\cell.obj", outVertecies, outFaces);
+	igl::list_to_matrix(Cell_ver, CellVertices);
+	igl::list_to_matrix(inEdges, CellEdges);
+
+	Eigen::Matrix<int, Eigen::Dynamic, 3> cellFace;
+	Eigen::Matrix<double, Eigen::Dynamic, 3> cellVer;
+	Eigen::Matrix<int, Eigen::Dynamic, 1> J_;
+
+	igl::copyleft::cgal::wire_mesh(CellVertices, CellEdges, 0.01, 3, false, cellVer, cellFace, J_);
+	igl::writeOBJ(base_path + "\\cell.obj", cellVer, cellFace);
 	// --------------------MENU-------------------- //
 	igl::opengl::glfw::Viewer viewer;
 	igl::opengl::glfw::imgui::ImGuiMenu menu;
@@ -366,43 +386,3 @@ int main(int argc, char *argv[])
 	cout << "done" << endl;
 	viewer.launch();
 }
-/*
-int main(int argc, char * argv[])
-{
-	igl::opengl::glfw::Viewer viewer;
-
-	viewer.load_mesh_from_file(std::string("C:\\Users\\Tomer\\Desktop\\libigl\\tutorial\\data") + "/cube.obj");
-	viewer.load_mesh_from_file(std::string("C:\\Users\\Tomer\\Desktop\\libigl\\tutorial\\data") + "/sphere.obj");
-
-	int left_view, right_view;
-	int cube_id = viewer.data_list[0].id, sphere_id = viewer.data_list[1].id;
-	viewer.callback_init = [&](igl::opengl::glfw::Viewer &)
-	{
-		viewer.core().viewport = Eigen::Vector4f(0, 0, 640, 800);
-		left_view = viewer.core_list[0].id;
-		right_view = viewer.append_core(Eigen::Vector4f(640, 0, 640, 800));
-		return true;
-	};
-
-	viewer.callback_key_down = [&](igl::opengl::glfw::Viewer &, unsigned int key, int mod)
-	{
-		if (key == GLFW_KEY_SPACE)
-		{
-			// by default, when a core is appended, all loaded meshes will be displayed in that core
-			// displaying can be controlled by changing viewer.coreDataPairs
-			viewer.data(cube_id).set_visible(false, left_view);
-			viewer.data(sphere_id).set_visible(false, right_view);
-		}
-		return false;
-	};
-
-	viewer.callback_post_resize = [&](igl::opengl::glfw::Viewer &v, int w, int h) {
-		v.core(left_view).viewport = Eigen::Vector4f(0, 0, w / 2, h);
-		v.core(right_view).viewport = Eigen::Vector4f(w / 2, 0, w - (w / 2), h);
-		return true;
-	};
-
-	viewer.launch();
-	return EXIT_SUCCESS;
-}
-*/
