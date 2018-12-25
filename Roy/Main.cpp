@@ -265,7 +265,7 @@ string ExePath() {
 	return string(buffer).substr(0, pos);
 }
 
-vector<vector<int>> mesh_to_wire(vector<vector<double>> vertices, vector<vector<int>> cubes, string full_path, float thickness, int faces, bool clean)
+vector<vector<int>> mesh_to_wire(vector<vector<double>> vertices, vector<vector<int>> cubes, string full_path, float thickness = 0.01f, int faces = 3, bool clean = false)
 {
 	vector<vector<int>> edges;
 
@@ -363,12 +363,12 @@ int main(int argc, char *argv[])
 		return true;
 	};
 
-	
-
 	vector<double> ver;
 	ver.push_back(0);
 	ver.push_back(0);
 	ver.push_back(0);
+	int face_1[4] = { 0,0,0,0 };
+	int face_2[4] = { 0,0,0,0 };
 
 	menu.callback_draw_viewer_menu = [&]()
 	{
@@ -397,8 +397,45 @@ int main(int argc, char *argv[])
 		ImGui::InputDouble("Z: ", &ver[2]);
 		if (ImGui::Button("Add Vertex"))
 		{
-
+			Cell_ver.push_back(ver);
+			cout << "added vertex: ";
+			printvec(ver);
 		}
+		ImGui::NewLine();
+		ImGui::InputInt4("First Face:", face_1);
+		ImGui::InputInt4("Second Face:", face_2);
+		if (ImGui::Button("Add Edge"))
+		{
+			vector<int> cube(face_1, face_1 + sizeof face_1 / sizeof face_1[0]);
+			vector<int> tmp(face_2, face_2 + sizeof face_2 / sizeof face_2[0]);
+			cube.insert(cube.end(), tmp.begin(), tmp.end());
+			Cell_cubes.push_back(cube);
+			mesh_to_wire(Cell_ver, Cell_cubes, base_path + "\\cell.obj", f, i, b);
+			viewer.data(cell_id).clear();
+
+			Eigen::Matrix<int, Eigen::Dynamic, 3> F;
+			Eigen::Matrix<double, Eigen::Dynamic, 3> V;
+
+			igl::readOBJ(base_path + "\\cell.obj", V, F);
+
+			viewer.data(cell_id).set_mesh(V, F);
+		}
+
+		if (ImGui::Button("Update Mesh"))
+		{
+			read_cubic_mesh(base_path + "bunny_1.mesh", Model_ver, Model_cubes);
+			import_cell(Model_ver, Model_cubes, Cell_ver, Cell_cubes);
+			mesh_to_wire(Model_ver, Model_cubes, base_path + "\\model.obj", f, i, b);
+			viewer.data(model_id).clear();
+
+			Eigen::Matrix<int, Eigen::Dynamic, 3> F;
+			Eigen::Matrix<double, Eigen::Dynamic, 3> V;
+
+			igl::readOBJ(base_path + "\\model.obj", V, F);
+
+			viewer.data(model_id).set_mesh(V, F);
+		}
+
 	};
 	
 	
