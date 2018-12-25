@@ -265,6 +265,31 @@ string ExePath() {
 	return string(buffer).substr(0, pos);
 }
 
+vector<vector<int>> mesh_to_wire(vector<vector<double>> vertices, vector<vector<int>> cubes, string full_path, float thickness, int faces, bool clean)
+{
+	vector<vector<int>> edges;
+
+	get_edges_from_cube_mesh(cubes, edges);
+
+	cout << "got edges" << endl;
+	// in
+	Eigen::Matrix<double, Eigen::Dynamic, 3> MatVertices;
+	Eigen::Matrix<int, Eigen::Dynamic, 2> MatEdges;
+
+	igl::list_to_matrix(vertices, MatVertices);
+	igl::list_to_matrix(edges, MatEdges);
+
+	// out
+	Eigen::Matrix<int, Eigen::Dynamic, 3> outFaces;
+	Eigen::Matrix<double, Eigen::Dynamic, 3> outVertecies;
+	Eigen::Matrix<int, Eigen::Dynamic, 1> J;
+
+	igl::copyleft::cgal::wire_mesh(MatVertices, MatEdges, thickness, faces, clean, outVertecies, outFaces, J);
+	igl::writeOBJ(full_path, outVertecies, outFaces); // write wiremesh to obj
+
+	return edges;
+}
+
 int main(int argc, char *argv[])
 {
 	std::string base_path = ExePath() + std::string("\\..\\..\\Data\\");
@@ -273,55 +298,30 @@ int main(int argc, char *argv[])
 	vector<vector<int>> Model_cubes;
 	vector<vector<double>> Cell_ver;
 	vector<vector<int>> Cell_cubes;
-	
-	vector<vector<int>> inEdges;
+	vector<vector<int>> ModelEdges;
+	vector<vector<int>> CellEdges;
+
+	float f = 0.01f;
+	int i = 3;
+	bool b = false;
 
 	read_cubic_mesh(base_path + "bunny_1.mesh", Model_ver, Model_cubes);
 	read_cubic_mesh(base_path + "cell.mesh", Cell_ver, Cell_cubes);
 
 	//make_cell(inVertices, Cubes);
 
-	//import_cell(Cell_ver, Cell_cubes, Cell_ver, Cell_cubes);
+	import_cell(Cell_ver, Cell_cubes, Cell_ver, Cell_cubes);
 
 	import_cell(Model_ver, Model_cubes, Cell_ver, Cell_cubes);
 
-	get_edges_from_cube_mesh(Model_cubes, inEdges);
-
-	cout << "got edges" << endl;
 	// -------------------MODEL------------------- //
-	// in
-	Eigen::Matrix<double, Eigen::Dynamic, 3> MatVertices;
-	Eigen::Matrix<int, Eigen::Dynamic, 2> MatEdges;
 
-	igl::list_to_matrix(Model_ver, MatVertices);
-	igl::list_to_matrix(inEdges, MatEdges);
-
-	// out
-	Eigen::Matrix<int, Eigen::Dynamic, 3> outFaces;
-	Eigen::Matrix<double, Eigen::Dynamic, 3> outVertecies;
-	Eigen::Matrix<int, Eigen::Dynamic, 1> J;
-
-	igl::copyleft::cgal::wire_mesh(MatVertices, MatEdges, 0.01, 3, false, outVertecies, outFaces, J);
-	igl::writeOBJ(base_path + "\\model.obj", outVertecies, outFaces);
+	ModelEdges = mesh_to_wire(Model_ver, Model_cubes, base_path + "\\model.obj", f, i, b);
 	
 	// -------------------CELL------------------- //
 
-	inEdges.clear();
+	CellEdges = mesh_to_wire(Cell_ver, Cell_cubes, base_path + "\\cell.obj", f, i, b);
 
-	get_edges_from_cube_mesh(Cell_cubes, inEdges);
-
-	Eigen::Matrix<double, Eigen::Dynamic, 3> CellVertices;
-	Eigen::Matrix<int, Eigen::Dynamic, 2> CellEdges;
-
-	igl::list_to_matrix(Cell_ver, CellVertices);
-	igl::list_to_matrix(inEdges, CellEdges);
-
-	Eigen::Matrix<int, Eigen::Dynamic, 3> cellFace;
-	Eigen::Matrix<double, Eigen::Dynamic, 3> cellVer;
-	Eigen::Matrix<int, Eigen::Dynamic, 1> J_;
-
-	igl::copyleft::cgal::wire_mesh(CellVertices, CellEdges, 0.01, 3, false, cellVer, cellFace, J_);
-	igl::writeOBJ(base_path + "\\cell.obj", cellVer, cellFace);
 	// --------------------MENU-------------------- //
 	igl::opengl::glfw::Viewer viewer;
 	igl::opengl::glfw::imgui::ImGuiMenu menu;
@@ -363,11 +363,13 @@ int main(int argc, char *argv[])
 		return true;
 	};
 
-	float f = 0.01f;
-	int i = 3;
-	bool b = false;
-	cout << "loading menu" << endl;
 	
+
+	vector<double> ver;
+	ver.push_back(0);
+	ver.push_back(0);
+	ver.push_back(0);
+
 	menu.callback_draw_viewer_menu = [&]()
 	{
 		ImGui::InputFloat("Thickness", &f);
@@ -376,9 +378,26 @@ int main(int argc, char *argv[])
 
 		if (ImGui::Button("Reload wire mesh"))
 		{
-			igl::copyleft::cgal::wire_mesh(MatVertices, MatEdges, f, i, b, outVertecies, outFaces, J); // wire mesh
+			mesh_to_wire(Model_ver, Model_cubes, base_path + "\\model.obj", f, i, b);
 			viewer.data(model_id).clear();
-			viewer.data(model_id).set_mesh(outVertecies, outFaces); // display
+
+			Eigen::Matrix<int, Eigen::Dynamic, 3> F;
+			Eigen::Matrix<double, Eigen::Dynamic, 3> V;
+
+			igl::readOBJ(base_path + "\\model.obj", V, F);
+
+			viewer.data(model_id).set_mesh(V, F);
+		}
+		ImGui::NewLine();
+
+		ImGui::Text("Edit Cell");
+		ImGui::Text("---------------------");
+		ImGui::InputDouble("X: ", &ver[0]);
+		ImGui::InputDouble("Y: ", &ver[1]);
+		ImGui::InputDouble("Z: ", &ver[2]);
+		if (ImGui::Button("Add Vertex"))
+		{
+
 		}
 	};
 	
